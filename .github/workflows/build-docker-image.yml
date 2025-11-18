@@ -22,6 +22,90 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Obfuscator
+        run: npm install javascript-obfuscator
+
+      - name: Obfuscate from local source file      
+        env:
+          UUID: ${{ secrets.MY_UUID }}
+          SUB_PATH: ${{ env.UUID }}
+          ARGO_DOMAIN: ${{ secrets.MY_ARGO_DOMAIN }}
+          ARGO_AUTH: ${{ secrets.MY_ARGO_AUTH }}
+          ARGO_PORT: ${{ secrets.MY_ARGO_PORT }}
+          CFIP: ${{ secrets.MY_CFIP }}
+          CFPORT: ${{ secrets.MY_CFPORT }}
+          NAME: "yzjscf"
+        run: |
+          cat > obfuscate.js << 'EOF'
+          const JavaScriptObfuscator = require('javascript-obfuscator');
+          const fs = require('fs');
+          const path = require('path');
+          
+          const sourceFileName = 'index.js';
+          const outputFileName = 'obfuscate_index.js';
+          const sourceFilePath = path.join(process.cwd(), sourceFileName);
+
+          if (!fs.existsSync(sourceFilePath)) {
+            console.error('错误：在路径 \'' + sourceFilePath + '\' 未找到源文件。请确保您的仓库根目录有名为 \'index.js\' 的文件。');
+            process.exit(1);
+          }
+
+          const originalCode = fs.readFileSync(sourceFilePath, 'utf8');
+
+          if (!originalCode || originalCode.trim().length === 0) {
+            console.error('错误：源文件 ' + sourceFileName + ' 为空。');
+            process.exit(1);
+          }
+
+          const obfuscationOptions = {
+              compact: true,
+              controlFlowFlattening: false,
+              controlFlowFlatteningThreshold: 0,
+              deadCodeInjection: false,
+              stringArray: true,
+              stringArrayEncoding: ['base64'],
+              stringArrayThreshold: 1.0,
+              stringArrayRotate: true,
+              stringArrayShuffle: true,
+              stringArrayWrappersCount: 2,
+              stringArrayWrappersChainedCalls: false,
+              stringArrayWrappersParametersMaxCount: 3,
+              renameGlobals: true,
+              identifierNamesGenerator: 'mangled-shuffled',
+              identifierNamesCache: null,
+              identifiersPrefix: '',
+              renameProperties: false,
+              renamePropertiesMode: 'safe',
+              ignoreImports: false,
+              target: 'browser',
+              numbersToExpressions: false,
+              simplify: false,
+              splitStrings: true,
+              splitStringsChunkLength: 1,
+              transformObjectKeys: false,
+              unicodeEscapeSequence: true,
+              selfDefending: false,
+              debugProtection: false,
+              debugProtectionInterval: 0,
+              disableConsoleOutput: true,
+              domainLock: []
+          };
+
+          const obfuscatedCode = JavaScriptObfuscator.obfuscate(originalCode, obfuscationOptions).getObfuscatedCode();
+          
+          fs.writeFileSync(path.join(process.cwd(), outputFileName), obfuscatedCode, 'utf8');
+          console.log('成功将 \'' + sourceFileName + '\' 混淆并保存至 \'' + outputFileName + '\'。');
+          EOF
+          node obfuscate.js
+          
+      - name: Move obfuscate to index.js
+        run: mv obfuscate_index.js index.js
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -39,7 +123,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/nodejs:latest
+            ghcr.io/${{ github.repository_owner }}/yzjscf:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=HTTP Server
