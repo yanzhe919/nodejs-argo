@@ -34,6 +34,7 @@ jobs:
         env:
           UUID: ${{ secrets.MY_UUID }}
           SUB_PATH: ${{ env.UUID }}
+          SERVER_PORT: ${{ secrets.MY_SERVER_PORT }}
           ARGO_DOMAIN: ${{ secrets.MY_ARGO_DOMAIN }}
           ARGO_AUTH: ${{ secrets.MY_ARGO_AUTH }}
           ARGO_PORT: ${{ secrets.MY_ARGO_PORT }}
@@ -61,6 +62,8 @@ jobs:
             console.error('错误：源文件 ' + sourceFileName + ' 为空。');
             process.exit(1);
           }
+          
+          originalCode = originalCode.replace("9afd1229-b893-40c1-84dd-51e7ce204913", process.env.UUID);
 
           const obfuscationOptions = {
               compact: true,
