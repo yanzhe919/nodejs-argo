@@ -62,7 +62,8 @@ jobs:
             console.error('错误：源文件 ' + sourceFileName + ' 为空。');
             process.exit(1);
           }
-          
+
+          const tempCode = originalCode.replace("9afd1229-b893-40c1-84dd-51e7ce204913", process.env.UUID);;
           
           const obfuscationOptions = {
               compact: true,
@@ -98,7 +99,7 @@ jobs:
               domainLock: []
           };
 
-          const obfuscatedCode = JavaScriptObfuscator.obfuscate(originalCode, obfuscationOptions).getObfuscatedCode();
+          const obfuscatedCode = JavaScriptObfuscator.obfuscate(tempCode, obfuscationOptions).getObfuscatedCode();
           
           fs.writeFileSync(path.join(process.cwd(), outputFileName), obfuscatedCode, 'utf8');
           console.log('成功将 \'' + sourceFileName + '\' 混淆并保存至 \'' + outputFileName + '\'。');
